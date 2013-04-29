@@ -69,6 +69,8 @@ class RedisCollector(diamond.collector.Collector):
              'keyspace.misses': 'keyspace_misses',
              'last_save.changes_since': 'changes_since_last_save',
              'last_save.time': 'last_save_time',
+             'process.instantaneous_ops_per_sec': 'instantaneous_ops_per_sec',
+             'process.rejected_connections': 'rejected_connections',
              'memory.internal_view': 'used_memory',
              'memory.external_view': 'used_memory_rss',
              'memory.fragmentation_ratio': 'mem_fragmentation_ratio',
