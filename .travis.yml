@@ -11,6 +11,6 @@ script:  python test.py
 notifications:
   email:
     recipients:
-        - kormoc@gmail.com
+        - scott@mopub.com
     on_success: change
     on_failure: always
