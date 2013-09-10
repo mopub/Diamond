@@ -92,18 +92,13 @@ class PostgresqlCollector(diamond.collector.Collector):
             datnames = ['postgres']
         return datnames
 
-    def _connect(self, database=None):
-        conn_args = {
-          'host':self.config['host'],
-          'user':self.config['user'],
-          'password':self.config['password'],
-          'port':self.config['port']
-        }
-
-        if database:
-          conn_args['database'] = database
-
-        conn = psycopg2.connect(**conn_args)
+    def _connect(self, database=''):
+        conn = psycopg2.connect(
+            host=self.config['host'],
+            user=self.config['user'],
+            password=self.config['password'],
+            port=self.config['port'],
+            database=database)
 
         # Avoid using transactions, set isolation level to autocommit
         conn.set_isolation_level(0)
@@ -272,20 +267,20 @@ class ConnectionStateStats(QueryStats):
                 ) AS tmp(state)
         LEFT JOIN
              (SELECT CASE WHEN waiting THEN 'waiting'
-                          WHEN current_query='<IDLE>' THEN 'idle'
-                          WHEN current_query='<IDLE> in transaction'
+                          WHEN query='<IDLE>' THEN 'idle'
+                          WHEN query='<IDLE> in transaction'
                               THEN 'idletransaction'
-                          WHEN current_query='<insufficient privilege>'
+                          WHEN query='<insufficient privilege>'
                               THEN 'unknown'
                           ELSE 'active' END AS state,
                      count(*) AS count
                FROM pg_stat_activity
-               WHERE procpid != pg_backend_pid()
+               WHERE pid != pg_backend_pid()
                GROUP BY CASE WHEN waiting THEN 'waiting'
-                             WHEN current_query='<IDLE>' THEN 'idle'
-                             WHEN current_query='<IDLE> in transaction'
+                             WHEN query='<IDLE>' THEN 'idle'
+                             WHEN query='<IDLE> in transaction'
                                  THEN 'idletransaction'
-                             WHEN current_query='<insufficient privilege>'
+                             WHEN query='<insufficient privilege>'
                                  THEN 'unknown' ELSE 'active' END
              ) AS tmp2
         ON tmp.state=tmp2.state ORDER BY 1
@@ -369,7 +364,7 @@ class IdleInTransactions(QueryStats):
                max(COALESCE(ROUND(EXTRACT(epoch FROM now()-query_start)),0))
                    AS idle_in_transaction
         FROM pg_stat_activity
-        WHERE current_query = '<IDLE> in transaction'
+        WHERE query = '<IDLE> in transaction'
         GROUP BY 1
     """
 
@@ -381,7 +376,7 @@ class LongestRunningQueries(QueryStats):
         SELECT 'query',
             COALESCE(max(extract(epoch FROM CURRENT_TIMESTAMP-query_start)),0)
         FROM pg_stat_activity
-        WHERE current_query NOT LIKE '<IDLE%'
+        WHERE query NOT LIKE '<IDLE%'
         UNION ALL
         SELECT 'transaction',
             COALESCE(max(extract(epoch FROM CURRENT_TIMESTAMP-xact_start)),0)
